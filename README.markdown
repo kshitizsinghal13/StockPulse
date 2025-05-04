@@ -186,7 +186,7 @@ A virtual environment isolates project dependencies.
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/StockPulse.git
+   https://github.com/kshitizsinghal13/StockPulse.git
    cd StockPulse
    ```
 2. **Create venv**:
