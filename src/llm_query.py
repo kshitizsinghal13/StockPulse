@@ -14,7 +14,7 @@ logger.add("stocks_data.log", format="{time} - {name} - {level} - {message}", le
 logger.add(lambda msg: print(msg, end=""), format="{time} - {name} - {level} - {message}", level="DEBUG")
 
 DB_PATH = "stock_history.db"
-TOGETHER_API_KEY = "83bdf87e0b97ba54b0b17d72c108a1c2da36973af2ba372d28056b1d25c05ada"
+TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY", "YOUR_TOGETHER_API_KEY_HERE")
 TOGETHER_API_URL = "https://api.together.ai/v1/chat/completions"
 FAISS_INDEX_PATH = "faiss_index.bin"
 FAISS_METADATA_PATH = "faiss_metadata.json"
@@ -83,7 +83,7 @@ def fetch_ipo_data() -> List[Dict]:
     try:
         url = "https://stock-market-ipo.p.rapidapi.com/sme"
         headers = {
-            "x-rapidapi-key": "7419d6cd4amsh0d3c33991f0e733p1bd6dcjsn604eb8a5f692",
+            "x-rapidapi-key": os.getenv("RAPIDAPI_KEY", "YOUR_RAPIDAPI_KEY_HERE"),
             "x-rapidapi-host": "stock-market-ipo.p.rapidapi.com",
         }
         response = requests.get(url, headers=headers)
