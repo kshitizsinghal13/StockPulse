@@ -19,15 +19,12 @@ logger.remove()
 logger.add("stocks_data.log", format="{time} - {name} - {level} - {message}", level="DEBUG", rotation="10 MB")
 logger.add(lambda msg: print(msg, end=""), format="{time} - {name} - {level} - {message}", level="DEBUG")
 
-API_KEYS = [
-    "0d1cc75b3a244a98ac540c7daeb031f4",
-    "affae8a17ff54c0a8aa8de9778118e8a",
-    "21442f51f18b4a51b6311131625cb7cf",
-    "673c5daaf0534670bf4ea76a80fc6e56",
-    "428c585172944da6807ea26b1b8fb2c3",
-    "0b396bb6221e426da8d04d8c99dd6f05",
-    "529ced0e780b49a2a99dbf9e8d15ebda"
-]
+# Load API keys from environment variables
+API_KEYS = os.getenv("TWELVE_DATA_API_KEYS", "").split(",")
+if not API_KEYS or all(key.strip() == "" for key in API_KEYS):
+    API_KEYS = ["YOUR_TWELVE_DATA_API_KEY_HERE"]  # Placeholder for documentation
+    logger.warning("No Twelve Data API keys found in environment variable TWELVE_DATA_API_KEYS. Using placeholder.")
+
 DB_PATH = "stock_history.db"
 FAISS_INDEX_PATH = "faiss_index.bin"
 FAISS_METADATA_PATH = "faiss_metadata.json"
@@ -191,7 +188,7 @@ def fetch_stock_data(symbols: List[str] = DEFAULT_SYMBOLS, interval: str = FETCH
         for symbol in symbols:
             api_key = API_KEYS[API_KEY_INDEX]
             API_KEY_REQUEST_COUNTS[api_key] += 1
-            logger.debug(f"Using API key {api_key} for {symbol} (Request {API_KEY_REQUEST_COUNTS[api_key]}/{API_REQUESTS_PER_MINUTE})")
+            logger.debug(f"Using API key {api_key} for {symbol} (Request {API_KEY_REQUEST_COUNTS[api_key]}/{API_REQUESTS_PER_MINUTE'})")
             if API_KEY_REQUEST_COUNTS[api_key] > API_REQUESTS_PER_MINUTE:
                 logger.info(f"API key {api_key} limit reached, waiting 60 seconds")
                 time.sleep(60)
