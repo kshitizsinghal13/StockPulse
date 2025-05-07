@@ -2,9 +2,9 @@
 
 *"Stay ahead of the market with StockPulse – where real-time data meets intelligent insights."*
 
-**StockPulse** is a dynamic web application that delivers live stock market data, IPO updates, market news, and personalized alerts through an interactive dashboard. Built with a Flask backend, a sleek frontend using Chart.js, and SocketIO for real-time updates, it’s perfect for traders, investors, and financial enthusiasts. The project shines by leveraging **Retrieval-Augmented Generation (RAG)** for smart query handling and **Pathway** for scalable, real-time data processing.
+**StockPulse** is a dynamic web application that delivers live stock market data, IPO updates, market news, and personalized alerts through an interactive dashboard. Built with a Flask backend, a sleek frontend using Chart.js, and SocketIO for real-time updates, it's perfect for traders, investors, and financial enthusiasts. The project shines by leveraging **Retrieval-Augmented Generation (RAG)** for smart query handling and **Pathway** for scalable, real-time data processing.
 
-This README is your comprehensive guide to understanding, setting up, and running StockPulse. It emphasizes the core technologies—RAG and Pathway—and provides clear instructions for configuring your development environment using **Windows Subsystem for Linux (WSL)** and **Python virtual environments (venv)**. Whether you’re a beginner or an experienced developer, this guide will help you get StockPulse up and running on GitHub.
+This README is your comprehensive guide to understanding, setting up, and running StockPulse. It emphasizes the core technologies—RAG and Pathway—and provides clear instructions for configuring your development environment using **Windows Subsystem for Linux (WSL)** and **Python virtual environments (venv)**. Whether you're a beginner or an experienced developer, this guide will help you get StockPulse up and running on GitHub.
 
 ## Table of Contents
 - [Project Overview](#project-overview)
@@ -22,6 +22,7 @@ This README is your comprehensive guide to understanding, setting up, and runnin
   - [Configuring API Keys](#configuring-api-keys)
   - [Running the Application](#running-the-application)
 - [Usage](#usage)
+- [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -39,7 +40,7 @@ This project is ideal for showcasing on GitHub, demonstrating expertise in AI, r
 |---------|-------------|
 | **Real-Time Stock Data** | Streams live prices for stocks like NVDA, AAPL, and more using Pathway. |
 | **Interactive Dashboard** | Displays charts, IPOs, news, and alerts with a futuristic UI. |
-| **Natural Language Queries** | Ask questions like “What’s AAPL’s price?” and get answers via RAG. |
+| **Natural Language Queries** | Ask questions like "What's AAPL's price?" and get answers via RAG. |
 | **Custom Alerts** | Set price change or threshold alerts with instant notifications. |
 | **Mock Data Fallback** | Simulates realistic stock data during market closures or API limits. |
 | **Scalable Processing** | Pathway handles large-scale, real-time data ingestion and analytics. |
@@ -80,7 +81,7 @@ Retrieval-Augmented Generation (RAG) is an advanced AI technique that combines i
 
 #### How RAG Works in StockPulse
 1. **Query Embedding**:
-   - When a user asks a question (e.g., “What is AAPL’s current price?”), the query is converted into a vector using the `all-MiniLM-L6-v2` Sentence Transformer model from [Hugging Face](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2).
+   - When a user asks a question (e.g., "What is AAPL's current price?"), the query is converted into a vector using the `all-MiniLM-L6-v2` Sentence Transformer model from [Hugging Face](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2).
 2. **Semantic Search**:
    - The query vector is searched against a FAISS index (`faiss_index.bin`), which stores embeddings of stock data, news, and alerts. FAISS, developed by [Meta AI](https://ai.meta.com/tools/faiss/), ensures fast and accurate retrieval.
 3. **Context Augmentation**:
@@ -91,8 +92,8 @@ Retrieval-Augmented Generation (RAG) is an advanced AI technique that combines i
    - If APIs are unavailable, mock data ensures continuous functionality.
 
 #### Example Query
-- **Input**: “Has TSLA had any major news today?”
-- **Process**: RAG retrieves recent TSLA news, summarizes it, and generates a response like: “TSLA’s stock rose 3% today after announcing a new factory opening.”
+- **Input**: "Has TSLA had any major news today?"
+- **Process**: RAG retrieves recent TSLA news, summarizes it, and generates a response like: "TSLA's stock rose 3% today after announcing a new factory opening."
 - **Output**: A concise, data-driven answer grounded in real-time information.
 
 #### Why RAG?
@@ -104,7 +105,7 @@ Retrieval-Augmented Generation (RAG) is an advanced AI technique that combines i
 ### Pathway for Real-Time Data Processing
 
 **What is Pathway?**  
-Pathway is a Python framework for building scalable, real-time data pipelines, ideal for applications requiring live data processing. In StockPulse, Pathway, implemented in `ingestion.py`, manages stock data ingestion, analytics, and alert monitoring. Learn more about Pathway at [Pathway’s official site](https://pathway.com/).
+Pathway is a Python framework for building scalable, real-time data pipelines, ideal for applications requiring live data processing. In StockPulse, Pathway, implemented in `ingestion.py`, manages stock data ingestion, analytics, and alert monitoring. Learn more about Pathway at [Pathway's official site](https://pathway.com/).
 
 #### How Pathway Works in StockPulse
 1. **Data Ingestion**:
@@ -114,13 +115,13 @@ Pathway is a Python framework for building scalable, real-time data pipelines, i
 3. **Analytics**:
    - Computes metrics like moving averages and volatility using a 5-point sliding window.
 4. **Alert Monitoring**:
-   - Continuously checks user-defined alerts (e.g., “Notify if AAPL drops below $140”) and triggers notifications when conditions are met.
+   - Continuously checks user-defined alerts (e.g., "Notify if AAPL drops below $140") and triggers notifications when conditions are met.
 5. **Persistence**:
    - Stores data in SQLite (`stock_history.db`) and updates the FAISS index for RAG.
 
 #### Example Workflow
 - **Input**: User tracks AAPL with an alert for a 5% price drop.
-- **Process**: Pathway streams AAPL’s price, detects a 5% drop, and sends a SocketIO notification.
+- **Process**: Pathway streams AAPL's price, detects a 5% drop, and sends a SocketIO notification.
 - **Output**: The dashboard updates instantly, and the user receives an alert.
 
 #### Why Pathway?
@@ -140,6 +141,11 @@ StockPulse/
 ├── populate_historical_data.py # Populates SQLite with mock data
 ├── templates/
 │   └── index.html            # Frontend dashboard with Chart.js
+├── static/                   # CSS, JS, and other static files
+│   ├── css/
+│   ├── js/
+│   └── images/
+├── .env                      # Environment variables for API keys (create this)
 ├── stocks_data.log           # Debug logs
 ├── stock_history.db          # SQLite database (auto-generated)
 ├── faiss_index.bin           # FAISS index for RAG
@@ -165,35 +171,45 @@ WSL allows Windows users to run a Linux environment, simplifying dependency mana
 
 1. **Install WSL2**:
    ```bash
+   # Open PowerShell as Administrator and run:
    wsl --install
    ```
-   Installs Ubuntu by default. Set up a username and password as prompted.
-2. **Update Ubuntu**:
+   This installs Ubuntu by default. Set up a username and password as prompted.
+
+2. **Restart your computer** (required after WSL installation).
+
+3. **Update Ubuntu**:
    ```bash
    sudo apt update && sudo apt upgrade -y
    ```
-3. **Install Python**:
+
+4. **Install Python and required packages**:
    ```bash
-   sudo apt install python3 python3-pip python3-venv -y
+   sudo apt install python3 python3-pip python3-venv git -y
    ```
-4. **Verify**:
+
+5. **Verify installation**:
    ```bash
    python3 --version
+   pip3 --version
+   git --version
    ```
 
 ### Creating a Virtual Environment
-A virtual environment isolates project dependencies.
+A virtual environment isolates project dependencies to avoid conflicts.
 
 1. **Clone the Repository**:
    ```bash
-   https://github.com/kshitizsinghal13/StockPulse.git
+   git clone https://github.com/kshitizsinghal13/StockPulse.git
    cd StockPulse
    ```
-2. **Create venv**:
+
+2. **Create a virtual environment**:
    ```bash
    python3 -m venv venv
    ```
-3. **Activate venv**:
+
+3. **Activate the virtual environment**:
    - Linux/macOS/WSL:
      ```bash
      source venv/bin/activate
@@ -202,58 +218,130 @@ A virtual environment isolates project dependencies.
      ```bash
      venv\Scripts\activate
      ```
-4. **Verify**: Terminal prompt shows `(venv)`.
+
+4. **Verify activation**: Your terminal prompt should now show `(venv)` at the beginning.
 
 ### Installing Dependencies
-With venv active:
+With the virtual environment activated:
+
 ```bash
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Sample `requirements.txt`:
-```
-flask==2.3.3
-flask-socketio==5.3.6
-pathway==0.10.1
-pandas==2.2.2
-faiss-cpu==1.8.0
-sentence-transformers==3.0.1
-loguru==0.7.2
-twelvedata==1.2.10
-requests==2.32.3
-retry==0.9.2
+If you encounter any installation issues, you may need to install additional system dependencies:
+
+```bash
+sudo apt install python3-dev build-essential -y
 ```
 
 ### Configuring API Keys
-1. **Twelve Data API**:
-   - Edit `ingestion.py`:
+
+For security, use environment variables or a `.env` file instead of hardcoding API keys:
+
+1. **Create a `.env` file**:
+   ```bash
+   touch .env
+   ```
+
+2. **Add your API keys to the `.env` file**:
+   ```
+   # Twelve Data API keys (comma-separated for multiple keys)
+   TWELVE_DATA_API_KEYS=your_api_key_1,your_api_key_2
+   
+   # Together AI API key
+   TOGETHER_API_KEY=your_together_api_key
+   ```
+
+3. **Update the code to use environment variables**:
+   - In `ingestion.py`:
      ```python
-     API_KEYS = ["your_api_key_1", "your_api_key_2"]
+     import os
+     from dotenv import load_dotenv
+     
+     load_dotenv()
+     
+     # Get API keys from environment variables
+     API_KEYS = os.getenv("TWELVE_DATA_API_KEYS", "").split(",")
      ```
-2. **Together AI API**:
-   - Edit `llm_query.py`:
+   
+   - In `llm_query.py`:
      ```python
-     TOGETHER_API_KEY = "your_together_api_key"
+     import os
+     from dotenv import load_dotenv
+     
+     load_dotenv()
+     
+     # Get API key from environment variables
+     TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY", "")
      ```
 
+4. **Add python-dotenv to requirements.txt**:
+   ```
+   python-dotenv==1.0.0
+   ```
+
 ### Running the Application
-1. **Populate Historical Data** (optional):
+
+1. **Populate Historical Data** (optional but recommended for first-time setup):
    ```bash
    python populate_historical_data.py
    ```
-2. **Start Flask Server**:
+
+2. **Start the Flask Server**:
    ```bash
    python app.py
    ```
-3. **Access Dashboard**:
-   - Open [http://localhost:5000](http://localhost:5000) in a browser.
+   By default, the server runs on port 5000.
+
+3. **Access the Dashboard**:
+   - Open [http://localhost:5000](http://localhost:5000) in your web browser.
+   - If using WSL, you may need to use the IP address of your WSL instance instead of localhost.
 
 ## Usage
 
 - **Dashboard**: View live stock charts, IPOs, news, and alerts for default symbols (NVDA, AAPL, etc.).
-- **Set Alerts**: Add alerts for price changes or thresholds in the “Alerts” section.
-- **Query AI**: Ask questions like “What’s TSLA’s volatility?” in the “Ask StockPulse AI” section.
-- **Update Watchlist**: Add symbols (e.g., TSLA, AMZN) to track in the “Watchlist” section.
+- **Set Alerts**: Add alerts for price changes or thresholds in the "Alerts" section.
+- **Query AI**: Ask questions like "What's TSLA's volatility?" in the "Ask StockPulse AI" section.
+- **Update Watchlist**: Add symbols (e.g., TSLA, AMZN) to track in the "Watchlist" section.
+
+## Troubleshooting
+
+### Common Issues
+
+1. **API Key Errors**:
+   - Check that your `.env` file is properly formatted
+   - Verify API keys are valid and have necessary permissions
+   - Ensure the dotenv package is installed and loaded correctly
+
+2. **WSL Connection Issues**:
+   - If you can't access the app from Windows when running in WSL, try:
+     ```bash
+     python app.py --host=0.0.0.0
+     ```
+     Then access using your WSL IP address (find with `ip addr show`)
+
+3. **Dependency Issues**:
+   - If you encounter issues with specific packages, try installing them individually:
+     ```bash
+     pip install package-name
+     ```
+   - For FAISS issues on WSL, try:
+     ```bash
+     pip uninstall faiss-cpu
+     pip install faiss-cpu==1.8.0 --no-cache-dir
+     ```
+
+4. **Database Issues**:
+   - If the database doesn't initialize properly:
+     ```bash
+     rm stock_history.db
+     python populate_historical_data.py
+     ```
+
+### Logging
+
+Check the `stocks_data.log` file for detailed error messages and debugging information.
 
 ## Contributing
 
@@ -264,7 +352,9 @@ We welcome contributions to enhance StockPulse! To contribute:
 4. Push: `git push origin feature/your-feature`.
 5. Open a pull request on GitHub.
 
-Report bugs or suggest features via the [Issues page](https://github.com/your-username/StockPulse/issues).
+Please ensure your code follows the project's style and includes appropriate tests.
+
+Report bugs or suggest features via the [Issues page](https://github.com/kshitizsinghal13/StockPulse/issues).
 
 ## License
 
