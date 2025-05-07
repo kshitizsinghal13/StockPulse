@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockPulse Pro</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00e5ff;
+            --primary-dark: #00b8d4;
+            --primary-light: #18ffff;
+            --primary-glow: rgba(0, 229, 255, 0.4);
+            --secondary: #7c4dff;
+            --secondary-dark: #651fff;
+            --secondary-light: #b388ff;
+            --alert: #ff1744;
+            --success: #00e676;
+            --info: #00b0ff;
+            --warning: #ffab00;
+            --dark-bg: #070a12;
+            --card-bg: #0e1525;
+            --card-border: #1e2a40;
+            --text-primary: #ffffff;
+            --text-secondary: #b0bec5;
+            --input-bg: #162035;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--dark-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: auto auto 1fr 1fr auto; /* Added row for additional-chart */
+            gap: 20px;
+            padding: 24px;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 229, 255, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(124, 77, 255, 0.05) 0%, transparent 20%),
+                linear-gradient(135deg, rgba(0, 229, 255, 0.02) 0%, rgba(124, 77, 255, 0.02) 100%);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom right, rgba(0, 229, 255, 0.03), rgba(124, 77, 255, 0.03));
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            position: relative;
+            z-index: 1;
+            padding: 0 10px;
+            left:35%;
+        }
+
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-shadow: 0 0 20px var(--primary-glow);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            left:100px;
+            letter-spacing: 1px;
+        }
+
+        .logo::before {
+            content: '〈';
+            font-size: 2.2rem;
+            color: var(--secondary);
+        }
+
+        .logo::after {
+            content: '/〉';
+            font-size: 2.2rem;
+            color: var(--secondary);
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 22px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            z-index: 1;
+            backdrop-filter: blur(5px);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        .card h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            letter-spacing: 0.5px;
+        }
+
+        .card h3::after {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: var(--primary);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--primary-glow);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        .scrollable {
+            max-height: 220px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary) var(--card-bg);
+            padding-right: 8px;
+        }
+
+        .scrollable::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .scrollable::-webkit-scrollbar-track {
+            background: var(--card-bg);
+        }
+
+        .scrollable::-webkit-scrollbar-thumb {
+            background-color: var(--primary);
+            border-radius: 2px;
+        }
+
+        #ipo-section {
+            grid-column: 1 / 2;
+            grid-row: 2 / 3;
+        }
+
+        #market-metrics {
+            grid-column: 2 / 3;
+            grid-row: 2 / 3;
+        }
+
+        #news-section {
+            grid-column: 3 / 5;
+            grid-row: 2 / 3;
+        }
+
+        #pinned-chart {
+            grid-column: 1 / 4;
+            grid-row: 3 / 5; /* Spans both rows to match height */
+        }
+
+        #main-chart {
+            grid-column: 4 / 5;
+            grid-row: 3 / 4;
+        }
+
+        #additional-chart {
+            grid-column: 4 / 5;
+            grid-row: 4 / 5; /* Below main-chart */
+        }
+
+        #alert-section {
+            grid-column: 1 / 2;
+            grid-row: 5 / 6;
+        }
+
+        #query-section {
+            grid-column: 2 / 4;
+            grid-row: 5 / 6;
+        }
+
+        #symbols-section {
+            grid-column: 4 / 5;
+            grid-row: 5 / 6;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 100%;
+            min-height: 150px; /* Reduced height for smaller charts */
+        }
+
+        .ipo-item, .news-item, .alert {
+            margin: 12px 0;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+            transform: translateZ(0);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .ipo-item {
+            background: linear-gradient(135deg, rgba(0, 176, 255, 0.15), rgba(0, 176, 255, 0.05));
+            border-left: 3px solid var(--info);
+        }
+
+        .news-item {
+            background: linear-gradient(135deg, rgba(0, 230, 118, 0.15), rgba(0, 230, 118, 0.05));
+            border-left: 3px solid var(--success);
+        }
+
+        .alert {
+            background: linear-gradient(135deg, rgba(255, 23, 68, 0.15), rgba(255, 23, 68, 0.05));
+            border-left: 3px solid var(--alert);
+        }
+
+        .market-metric {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .metric-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .positive {
+            color: var(--success);
+            text-shadow: 0 0 8px rgba(0, 230, 118, 0.4);
+        }
+
+        .negative {
+            color: var(--alert);
+            text-shadow: 0 0 8px rgba(255, 23, 68, 0.4);
+        }
+
+        .neutral {
+            color: var(--primary);
+            text-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        input, select, button {
+            background-color: var(--input-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px var(--primary-glow);
+        }
+
+        button {
+            cursor: pointer;
+            background: linear-gradient(145deg, var(--primary-dark), var(--primary));
+            color: #000;
+            font-weight: 600;
+            border: none;
+            padding: 12px 22px;
+            min-width: 100px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 229, 255, 0.35);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: 0.5s;
+            z-index: -1;
+        }
+
+        button:hover::before {
+            left: 100%;
+        }
+
+        #alert-submit {
+            background: linear-gradient(145deg, #d81b60, #ff1744);
+        }
+
+        #query-submit {
+            background: linear-gradient(145deg, #651fff, #7c4dff);
+        }
+
+        #symbols-submit {
+            background: linear-gradient(145deg, #00b8d4, #00e5ff);
+        }
+
+        #query-response {
+            margin-top: 18px;
+            padding: 18px;
+            background-color: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            min-height: 70px;
+            white-space: pre-wrap;
+            font-size: 0.95rem;
+            position: relative;
+            border-left: 3px solid var(--secondary);
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #query-response.loading::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 2px;
+            width: 100%;
+            background: linear-gradient(90deg, var(--secondary), var(--primary));
+            animation: loading 1.5s infinite linear;
+        }
+
+        @keyframes loading {
+            0% { width: 0%; left: 0; }
+            50% { width: 100%; left: 0; }
+            100% { width: 0%; left: 100%; }
+        }
+
+        #error-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            background-color: rgba(255, 23, 68, 0.9);
+            color: white;
+            border-radius: 12px;
+            z-index: 1000;
+            transform: translateX(150%);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+            display: flex;
+            align-items: center;
+            max-width: 350px;
+            backdrop-filter: blur(5px);
+        }
+
+        #error-message.show {
+            transform: translateX(0);
+            animation: slideIn 0.3s forwards, fadeOut 0.5s 4.5s forwards;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(150%); }
+            to { transform: translateX(0); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        #error-message::before {
+            content: "!";
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            background-color: white;
+            color: var(--alert);
+            border-radius: 50%;
+            margin-right: 12px;
+            font-weight: bold;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .badge.hot {
+            background-color: var(--alert);
+            color: white;
+        }
+
+        .badge.new {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .badge.trending {
+            background-color: var(--warning);
+            color: black;
+        }
+
+        .fab {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--secondary), var(--secondary-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(124, 77, 255, 0.6);
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        .fab svg {
+            fill: white;
+            width: 26px;
+            height: 26px;
+        }
+
+        .fab:hover {
+            transform: scale(1.1) rotate(10deg);
+        }
+
+        .theme-switch {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 26px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--card-bg);
+            transition: .4s;
+            border-radius: 26px;
+            border: 1px solid var(--card-border);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 2px;
+            background-color: var(--primary);
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        input:checked + .slider {
+            background-color: var(--secondary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(25px);
+            background-color: white;
+        }
+
+        .chart-filters {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+            margin-bottom: 15px;
+        }
+
+        .time-filter {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            background: var(--input-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .time-filter.active {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            color: black;
+            font-weight: 600;
+            border: none;
+            box-shadow: 0 3px 8px rgba(0, 229, 255, 0.3);
+        }
+
+        .chart-loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(7, 10, 18, 0.7);
+            z-index: 10;
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            border-radius: 12px;
+        }
+
+        .chart-loading.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .loader {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s infinite linear;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .tooltip {
+            position: absolute;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .market-mood {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 18px;
+            padding: 14px;
+            background-color: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .mood-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .mood-meter {
+            flex-grow: 1;
+            height: 8px;
+            background-color: var(--card-border);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .mood-value {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 65%;
+            background: linear-gradient(90deg, var(--alert), var(--warning), var(--success));
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+        }
+
+        .mood-text {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300e5ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 35px;
+        }
+
+        input::placeholder {
+            color: rgba(176, 190, 197, 0.6);
+        }
+
+        button#alert-refresh {
+            padding: 5px 10px;
+            min-width: auto;
+            font-size: 0.75rem;
+            background: linear-gradient(135deg, var(--card-border), var(--input-bg));
+            color: var(--text-secondary);
+        }
+
+        button:focus, input:focus, select:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">StockPulse</div>
+        <div class="theme-switch">
+            <span>Dark Mode</span>
+            <label class="switch">
+                <input type="checkbox" id="dark-mode-toggle" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <div id="error-message"></div>
+
+    <div id="ipo-section" class="card">
+        <h3>Upcoming IPOs</h3>
+        <div id="ipo-content" class="scrollable"></div>
+    </div>
+
+    <div id="market-metrics" class="card">
+        <h3>Market Pulse</h3>
+        <div class="market-metric">
+            <span>S&P 500</span>
+            <span class="metric-value positive">+1.2%</span>
+        </div>
+        <div class="market-metric">
+            <span>NASDAQ</span>
+            <span class="metric-value positive">+0.8%</span>
+        </div>
+        <div class="market-metric">
+            <span>DOW</span>
+            <span class="metric-value negative">-0.3%</span>
+        </div>
+        <div class="market-mood">
+            <span class="mood-label">Market Mood:</span>
+            <div class="mood-meter">
+                <div class="mood-value"></div>
+            </div>
+            <span class="mood-text">Bullish</span>
+        </div>
+    </div>
+
+    <div id="news-section" class="card">
+        <h3>Market News</h3>
+        <div id="news-content" class="scrollable"></div>
+    </div>
+
+    <div id="pinned-chart" class="card">
+        <h3>Main Chart</h3>
+        <div class="chart-filters">
+            <span class="time-filter active" data-time="1d">1D</span>
+            <span class="time-filter" data-time="1w">1W</span>
+            <span class="time-filter" data-time="1m">1M</span>
+            <span class="time-filter" data-time="3m">3M</span>
+            <span class="time-filter" data-time="1y">1Y</span>
+        </div>
+        <div class="chart-container">
+            <canvas id="pinned-canvas"></canvas>
+            <div class="chart-loading">
+                <div class="loader"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-chart" class="card">
+        <h3>Pinned Chart</h3>
+        <div class="chart-filters">
+            <span class="time-filter active" data-time="1d">1D</span>
+            <span class="time-filter" data-time="1w">1W</span>
+            <span class="time-filter" data-time="1m">1M</span>
+            <span class="time-filter" data-time="3m">3M</span>
+            <span class="time-filter" data-time="1y">1Y</span>
+        </div>
+        <div class="chart-container">
+            <canvas id="main-canvas"></canvas>
+            <div class="chart-loading">
+                <div class="loader"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="additional-chart" class="card">
+        <h3>Additional Pinned Chart</h3>
+        <div class="chart-filters">
+            <span class="time-filter active" data-time="1d">1D</span>
+            <span class="time-filter" data-time="1w">1W</span>
+            <span class="time-filter" data-time="1m">1M</span>
+            <span class="time-filter" data-time="3m">3M</span>
+            <span class="time-filter" data-time="1y">1Y</span>
+        </div>
+        <div class="chart-container">
+            <canvas id="additional-canvas"></canvas>
+            <div class="chart-loading">
+                <div class="loader"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="alert-section" class="card">
+        <h3>Alerts <button id="alert-refresh">Refresh</button></h3>
+        <div id="no-alerts" style="display: none; padding: 10px; color: var(--text-secondary);">No alerts yet.</div>
+        <div id="alerts" class="scrollable"></div>
+        <div class="controls">
+            <select id="alert-type">
+                <option value="price_change">Price Change</option>
+                <option value="percent_change">Percent Change</option>
+                <option value="high_low">High/Low Threshold</option>
+            </select>
+            <input type="text" id="alert-symbol" placeholder="Symbol (e.g., AAPL)">
+            <input type="text" id="alert-value" placeholder="Value (e.g., 0.02 for 2%)">
+            <button id="alert-submit">Set Alert</button>
+        </div>
+    </div>
+
+    <div id="query-section" class="card">
+        <h3>Ask StockPulse AI</h3>
+        <div class="controls">
+            <input type="text" id="query-input" placeholder="e.g., What is AAPL's price target for next quarter?" style="flex-grow: 1;">
+            <button id="query-submit">Ask</button>
+        </div>
+        <div id="query-response"></div>
+    </div>
+
+    <div id="symbols-section" class="card">
+        <h3>Watchlist</h3>
+        <div class="controls">
+            <input type="text" id="symbols-input" placeholder="Add symbols (e.g., NVDA,AAPL,MSFT)" style="flex-grow: 1;">
+            <button id="symbols-submit">Update</button>
+        </div>
+        <div style="margin-top: 15px;">
+            <select id="pin-symbol" style="width: 100%; margin-bottom: 10px;">
+                <option value="">Select Pinned Symbol</option>
+            </select>
+            <select id="main-symbol" style="width: 100%; margin-bottom: 10px;">
+                <option value="">Select Pinned Chart Symbol</option>
+            </select>
+            <select id="additional-symbol" style="width: 100%;">
+                <option value="">Select Additional Pinned Chart Symbol</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="fab" id="refresh-all">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M17.65 6.35A8 8 0 1 0 19.73 14h-2.08A6 6 0 1 1 16 7.73V10h4V6h-2.35z"/>
+        </svg>
+    </div>
+
+    <script>
+        const socket = io('http://localhost:5000', {
+            reconnection: true,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1000
+        });
+        const charts = {};
+        let lastAlertFetchTime = Date.now();
+        let displayedAlerts = new Set();
+        let displayedIPOs = new Set();
+        let displayedNews = new Set();
+        let ipoCache = [];
+        let pinnedSymbol = null;
+        let mainSymbol = null;
+        let additionalSymbol = null;
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+            setTimeout(() => errorDiv.classList.remove('show'), 5000);
+        }
+
+        socket.on('connect', () => {
+            console.log('Connected to SocketIO server');
+            showError('Connected to server');
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('SocketIO connection error:', error);
+            showError('Connection error. Retrying...');
+        });
+
+        socket.on('reconnect', (attempt) => {
+            console.log('SocketIO reconnected after', attempt, 'attempts');
+            showError('Reconnected to server');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from SocketIO server');
+            showError('Disconnected from server');
+        });
+
+        socket.on('stock_update', (data) => {
+            console.log('Stock update:', data);
+            if (data && data.symbol && data.price && data.timestamp) {
+                updateChart(data.symbol, data.price, data.timestamp);
+            } else {
+                console.error('Invalid stock update data:', data);
+                showError('Invalid stock update received');
+            }
+        });
+
+        socket.on('alert_triggered', (data) => {
+            console.log('Received alert_triggered event:', data);
+            const alertsDiv = document.getElementById('alerts');
+            if (alertsDiv && data.message) {
+                const alertKey = data.message;
+                if (!displayedAlerts.has(alertKey)) {
+                    const alertElement = document.createElement('div');
+                    alertElement.className = 'alert';
+                    alertElement.textContent = data.message;
+                    alertsDiv.appendChild(alertElement);
+                    displayedAlerts.add(alertKey);
+                    alertsDiv.scrollTop = alertsDiv.scrollHeight;
+                    document.getElementById('no-alerts').style.display = 'none';
+                }
+            } else {
+                console.error('Invalid alert data or alerts div not found:', data);
+                showError('Error displaying alert');
+            }
+        });
+
+        socket.on('query_response', (data) => {
+            console.log('Received query_response event:', data);
+            const responseDiv = document.getElementById('query-response');
+            if (responseDiv && data.response) {
+                responseDiv.classList.remove('loading');
+                responseDiv.textContent = data.response;
+                responseDiv.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                console.error('Invalid query response or query-response div not found:', data);
+                showError('Error displaying query response');
+            }
+        });
+
+        async function fetchInitialData() {
+            try {
+                const response = await fetch('/api/data');
+                const result = await response.json();
+                console.log('Initial data:', result);
+                const pinSelect = document.getElementById('pin-symbol');
+                const mainSelect = document.getElementById('main-symbol');
+                const additionalSelect = document.getElementById('additional-symbol');
+                pinSelect.innerHTML = '<option value="">Select Pinned Symbol</option>';
+                mainSelect.innerHTML = '<option value="">Select Pinned Chart Symbol</option>';
+                additionalSelect.innerHTML = '<option value="">Select Additional Pinned Chart Symbol</option>';
+                if (result.error) {
+                    showError(result.error);
+                    result.symbols.forEach(symbol => {
+                        const optionPin = document.createElement('option');
+                        optionPin.value = symbol;
+                        optionPin.textContent = symbol;
+                        pinSelect.appendChild(optionPin);
+                        const optionMain = document.createElement('option');
+                        optionMain.value = symbol;
+                        optionMain.textContent = symbol;
+                        mainSelect.appendChild(optionMain);
+                        const optionAdditional = document.createElement('option');
+                        optionAdditional.value = symbol;
+                        optionAdditional.textContent = symbol;
+                        additionalSelect.appendChild(optionAdditional);
+                    });
+                    return;
+                }
+                for (const symbol in result.data) {
+                    const optionPin = document.createElement('option');
+                    optionPin.value = symbol;
+                    optionPin.textContent = symbol;
+                    pinSelect.appendChild(optionPin);
+                    const optionMain = document.createElement('option');
+                    optionMain.value = symbol;
+                    optionMain.textContent = symbol;
+                    mainSelect.appendChild(optionMain);
+                    const optionAdditional = document.createElement('option');
+                    optionAdditional.value = symbol;
+                    optionAdditional.textContent = symbol;
+                    additionalSelect.appendChild(optionAdditional);
+                    result.data[symbol].forEach(entry => {
+                        updateChart(symbol, entry.price, entry.datetime);
+                    });
+                }
+                if (result.symbols && result.symbols.length) {
+                    pinSelect.value = result.symbols[0] || '';
+                    mainSelect.value = result.symbols[1] || result.symbols[0] || '';
+                    additionalSelect.value = result.symbols[2] || result.symbols[0] || '';
+                    if (pinSelect.value) pinnedSymbol = pinSelect.value;
+                    if (mainSelect.value) mainSymbol = mainSelect.value;
+                    if (additionalSelect.value) additionalSymbol = additionalSelect.value;
+                    if (pinnedSymbol) createChart(pinnedSymbol, 'pinned-canvas');
+                    if (mainSymbol) createChart(mainSymbol, 'main-canvas');
+                    if (additionalSymbol) createChart(additionalSymbol, 'additional-canvas');
+                }
+            } catch (error) {
+                console.error('Error fetching initial data:', error);
+                showError('Error loading initial data');
+            }
+        }
+
+        async function fetchMissedAlerts() {
+            try {
+                const response = await fetch('/api/alert_history');
+                const data = await response.json();
+                console.log('Fetched alert history:', data);
+                const alertsDiv = document.getElementById('alerts');
+                const noAlertsDiv = document.getElementById('no-alerts');
+                if (alertsDiv) {
+                    if (!data.alerts || data.alerts.length === 0) {
+                        noAlertsDiv.style.display = 'block';
+                        return;
+                    }
+                    data.alerts.forEach(alert => {
+                        const alertKey = alert.message;
+                        if (!displayedAlerts.has(alertKey)) {
+                            const alertElement = document.createElement('div');
+                            alertElement.className = 'alert';
+                            alertElement.textContent = alert.message;
+                            alertsDiv.appendChild(alertElement);
+                            displayedAlerts.add(alertKey);
+                        }
+                    });
+                    alertsDiv.scrollTop = alertsDiv.scrollHeight;
+                    noAlertsDiv.style.display = displayedAlerts.size === 0 ? 'block' : 'none';
+                    lastAlertFetchTime = Date.now();
+                }
+            } catch (error) {
+                console.error('Error fetching alert history:', error);
+                showError('Error loading alerts');
+            }
+        }
+
+        function updateIPOContent() {
+            const ipoDiv = document.getElementById('ipo-content');
+            if (!ipoDiv) {
+                console.error('IPO content div not found');
+                showError('IPO content div not found');
+                return;
+            }
+            ipoDiv.innerHTML = '';
+            if (ipoCache.length === 0) {
+                ipoDiv.innerHTML = '<div>No IPOs available</div>';
+                return;
+            }
+            ipoCache.forEach(ipo => {
+                const ipoKey = `${ipo.company}-${ipo.ipo_date}`;
+                if (!displayedIPOs.has(ipoKey)) {
+                    const ipoElement = document.createElement('div');
+                    ipoElement.className = 'ipo-item';
+                    ipoElement.textContent = `Company: ${ipo.company}, Symbol: ${ipo.symbol}, IPO Date: ${ipo.ipo_date}, Price Range: ${ipo.price_range}`;
+                    ipoDiv.appendChild(ipoElement);
+                    displayedIPOs.add(ipoKey);
+                }
+            });
+            ipoDiv.scrollTop = ipoDiv.scrollHeight;
+        }
+
+        async function fetchIPOData() {
+            try {
+                const response = await fetch('/api/ipo_data');
+                const data = await response.json();
+                console.log('Fetched IPO data:', data);
+                if (data.ipos && data.ipos.length > 0) {
+                    data.ipos.forEach(newIpo => {
+                        const ipoKey = `${newIpo.company}-${newIpo.ipo_date}`;
+                        const existingIndex = ipoCache.findIndex(ipo => `${ipo.company}-${ipo.ipo_date}` === ipoKey);
+                        if (existingIndex === -1) {
+                            ipoCache.push(newIpo);
+                        } else {
+                            ipoCache[existingIndex] = newIpo;
+                        }
+                    });
+                    ipoCache.sort((a, b) => new Date(b.ipo_date) - new Date(a.ipo_date));
+                    ipoCache = ipoCache.slice(0, 10);
+                    updateIPOContent();
+                } else {
+                    console.log('No new IPO data; retaining existing IPOs');
+                    updateIPOContent();
+                }
+            } catch (error) {
+                console.error('Error fetching IPO data:', error);
+                showError('Error loading IPOs');
+                updateIPOContent();
+            }
+        }
+
+        async function fetchNewsData() {
+            try {
+                const newsDiv = document.getElementById('news-content');
+                if (!newsDiv) {
+                    console.error('News content div not found');
+                    showError('News content div not found');
+                    return;
+                }
+                const hardCodedNews = [
+                    {
+                        title: "Tech stocks surge as AI investments soar",
+                        date: "2025-05-04"
+                    },
+                    {
+                        title: "Federal Reserve holds interest rates steady",
+                        date: "2025-05-03"
+                    },
+                    {
+                        title: "NVIDIA announces new GPU architecture",
+                        date: "2025-05-02"
+                    },
+                    {
+                        title: "Apple reports record-breaking Q2 earnings",
+                        date: "2025-05-01"
+                    },
+                    {
+                        title: "Global markets rally on positive economic data",
+                        date: "2025-04-30"
+                    }
+                ];
+                console.log('Using hard-coded news data:', hardCodedNews);
+                newsDiv.innerHTML = '';
+                if (hardCodedNews.length === 0) {
+                    newsDiv.innerHTML = '<div>No news available</div>';
+                    return;
+                }
+                hardCodedNews.forEach(article => {
+                    const newsKey = `${article.title}-${article.date}`;
+                    if (!displayedNews.has(newsKey)) {
+                        const newsElement = document.createElement('div');
+                        newsElement.className = 'news-item';
+                        newsElement.textContent = `${article.title} - ${article.date}`;
+                        newsDiv.appendChild(newsElement);
+                        displayedNews.add(newsKey);
+                    }
+                });
+                newsDiv.scrollTop = newsDiv.scrollHeight;
+            } catch (error) {
+                console.error('Error displaying news data:', error);
+                showError('Error loading news');
+            }
+        }
+
+        function startPolling() {
+            fetchMissedAlerts();
+            fetchIPOData();
+            fetchNewsData();
+            setInterval(fetchMissedAlerts, 5000);
+        }
+
+        function createChart(symbol, containerId) {
+            const canvas = document.getElementById(containerId);
+            if (!canvas) {
+                console.error(`Canvas not found: ${containerId}`);
+                showError(`Chart canvas not found: ${containerId}`);
+                return;
+            }
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                console.error(`Canvas context not available for ${containerId}`);
+                showError(`Chart context error: ${containerId}`);
+                return;
+            }
+            if (charts[symbol]) {
+                charts[symbol].destroy();
+            }
+            charts[symbol] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: `${symbol} Price`,
+                        data: [],
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 4,
+                        fill: false
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Time' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Price' },
+                            beginAtZero: false
+                        }
+                    },
+                    plugins: {
+                        legend: { display: true }
+                    }
+                }
+            });
+            console.log(`Created chart for ${symbol} in ${containerId}`);
+        }
+
+        function updateChart(symbol, price, timestamp) {
+            if (!charts[symbol] && (symbol === pinnedSymbol || symbol === mainSymbol || symbol === additionalSymbol)) {
+                const canvasId = symbol === pinnedSymbol ? 'pinned-canvas' : symbol === mainSymbol ? 'main-canvas' : 'additional-canvas';
+                createChart(symbol, canvasId);
+            }
+            if (charts[symbol]) {
+                const chart = charts[symbol];
+                chart.data.labels.push(new Date(timestamp).toLocaleTimeString());
+                chart.data.datasets[0].data.push(price);
+                if (chart.data.labels.length > 50) {
+                    chart.data.labels.shift();
+                    chart.data.datasets[0].data.shift();
+                }
+                chart.update();
+                console.log(`Updated chart for ${symbol}: ${price} at ${timestamp}`);
+            }
+        }
+
+        document.getElementById('query-submit').addEventListener('click', async () => {
+            const query = document.getElementById('query-input').value;
+            if (query) {
+                try {
+                    const responseDiv = document.getElementById('query-response');
+                    responseDiv.textContent = '';
+                    responseDiv.classList.add('loading');
+                    console.log('Submitting query:', query);
+                    const response = await fetch('/api/query', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ query })
+                    });
+                    const result = await response.json();
+                    console.log('Query API result:', result);
+                    if (result.error) {
+                        responseDiv.classList.remove('loading');
+                        responseDiv.textContent = `Error: ${result.error}`;
+                        showError(result.error);
+                    }
+                } catch (error) {
+                    console.error('Error submitting query:', error);
+                    const responseDiv = document.getElementById('query-response');
+                    responseDiv.classList.remove('loading');
+                    responseDiv.textContent = `Error: ${error.message}`;
+                    showError('Error submitting query');
+                }
+            }
+        });
+
+        document.getElementById('alert-submit').addEventListener('click', async () => {
+            const alertType = document.getElementById('alert-type').value;
+            const symbol = document.getElementById('alert-symbol').value.toUpperCase();
+            const value = document.getElementById('alert-value').value;
+            if (symbol) {
+                try {
+                    const response = await fetch('/api/set_alert', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ alert_type: alertType, symbol, value })
+                    });
+                    const result = await response.json();
+                    console.log('Set alert result:', result);
+                    if (result.status === 'success') {
+                        showError(`Alert set: ${result.message}`);
+                    } else {
+                        showError(result.error || 'Error setting alert');
+                    }
+                } catch (error) {
+                    console.error('Error setting alert:', error);
+                    showError('Error setting alert');
+                }
+            } else {
+                showError('Please enter a valid symbol');
+            }
+        });
+
+        document.getElementById('alert-refresh').addEventListener('click', async () => {
+            displayedAlerts.clear();
+            await fetchMissedAlerts();
+        });
+
+        document.getElementById('symbols-submit').addEventListener('click', async () => {
+            const symbols = document.getElementById('symbols-input').value;
+            if (symbols) {
+                try {
+                    for (const symbol in charts) {
+                        charts[symbol].destroy();
+                        delete charts[symbol];
+                    }
+                    pinnedSymbol = null;
+                    mainSymbol = null;
+                    additionalSymbol = null;
+                    const response = await fetch('/api/update_symbols', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ symbols })
+                    });
+                    const result = await response.json();
+                    console.log('Update symbols result:', result);
+                    if (result.status === 'success') {
+                        const pinnedCanvas = document.getElementById('pinned-canvas');
+                        const mainCanvas = document.getElementById('main-canvas');
+                        const additionalCanvas = document.getElementById('additional-canvas');
+                        if (pinnedCanvas) pinnedCanvas.getContext('2d').clearRect(0, 0, pinnedCanvas.width, pinnedCanvas.height);
+                        if (mainCanvas) mainCanvas.getContext('2d').clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+                        if (additionalCanvas) additionalCanvas.getContext('2d').clearRect(0, 0, additionalCanvas.width, additionalCanvas.height);
+                        await fetchInitialData();
+                        showError('Symbols updated successfully');
+                    } else {
+                        showError(result.error || 'Error updating symbols');
+                    }
+                } catch (error) {
+                    console.error('Error updating symbols:', error);
+                    showError('Error updating symbols');
+                }
+            } else {
+                showError('Please enter valid symbols');
+            }
+        });
+
+        document.getElementById('pin-symbol').addEventListener('change', (e) => {
+            pinnedSymbol = e.target.value;
+            console.log('Pinned symbol changed to:', pinnedSymbol);
+            if (pinnedSymbol) {
+                createChart(pinnedSymbol, 'pinned-canvas');
+                fetchInitialData();
+            }
+        });
+
+        document.getElementById('main-symbol').addEventListener('change', (e) => {
+            mainSymbol = e.target.value;
+            console.log('Main symbol changed to:', mainSymbol);
+            if (mainSymbol) {
+                createChart(mainSymbol, 'main-canvas');
+                fetchInitialData();
+            }
+        });
+
+        document.getElementById('additional-symbol').addEventListener('change', (e) => {
+            additionalSymbol = e.target.value;
+            console.log('Additional symbol changed to:', additionalSymbol);
+            if (additionalSymbol) {
+                createChart(additionalSymbol, 'additional-canvas');
+                fetchInitialData();
+            }
+        });
+
+        fetchInitialData();
+        startPolling();
+    </script>
+</body>
+</html>
