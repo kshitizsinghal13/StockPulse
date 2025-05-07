@@ -32,7 +32,7 @@ logger.add(
 DB_PATH = "stock_history.db"
 current_symbols = ["NVDA", "AAPL", "MSFT", "GOOGL"]
 pipeline_thread = None
-POLYGON_API_KEY = "iBlsuVP7tNvkPNiv7Pg4a4QZOZrGLKMV"  # Polygon.io API key
+POLYGON_API_KEY = os.getenv("POLYGON_API_KEY", "YOUR_POLYGON_API_KEY_HERE")  # Use environment variable or placeholder
 
 def get_db_connection():
     try:
